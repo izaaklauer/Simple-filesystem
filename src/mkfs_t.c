@@ -33,16 +33,22 @@
 #include "SFS.h"
 
 int main(int argc, char *argv[]) {
+    // check arguments
     if (argc != 2) {
         fprintf(stderr, "%s: missing file operand\n", argv[0]);
         fprintf(stderr, "Usage: mkfs_t FILE_NAME\n");
         fprintf(stderr, "Create an SFX filesystem on a file with the name FILE_NAME.\n");
         return EXIT_FAILURE;
     }
+
     // Use dd to create an empty file
     char CMD[512];
     sprintf(CMD, "dd if=/dev/zero of=%s bs=1M count=%d", argv[1], MAX_FILESYSTEM_SIZE/1024/1024);
-    system(CMD);
+    int ret = system(CMD);
+    if(ret) {
+        fprintf(stderr, "Return code: %d\n", ret);
+        return EXIT_FAILURE;
+    }
 
     // Mmap the file
     int fd = open(argv[1], O_RDWR);
