@@ -25,4 +25,4 @@ $(BINDIR):
 
 .PHONY: clean
 clean:
-	rm -rf $(BINDIR)/* $(OBJDIR)/*
+	rm -rf $(BINDIR) $(OBJDIR)

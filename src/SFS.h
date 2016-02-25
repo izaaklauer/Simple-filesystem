@@ -2,7 +2,6 @@
  * @file SFS.h
  * @brief A simple filesystem (SFS)
  * @author Star Poon <star.poon@connect.polyu.hk>
- * @version 1.0
  * @copyright 2016
  *
  * @section LICENSE
@@ -25,7 +24,7 @@
 //Unit is Byte
 #define SB_OFFSET                       512
 #define INODE_OFFSET                   4096
-#define DATA_OFFSET                   10240
+#define DATA_OFFSET                10485760
 #define MAX_INODE                       100
 #define MAX_DATA_BLK                  25600
 #define BLOCK_SIZE                     4096
@@ -34,7 +33,7 @@
 #define MAX_FILESYSTEM_SIZE   110*1024*1024
 
 struct superblock {
-    int inode_offset;
+    int inode_offset;   
     int data_offset;
     int max_inode;
     int max_data_blk;
@@ -71,7 +70,7 @@ typedef struct dir_mapping {
  *            2 means that target is an existing file.
  * @returns The corresponding inode number of the file.
  * @retval >=0 The inode number of the file.
- * @retval -1 Error occured.
+ * @retval -1 Error occurred.
  */
 int open_t(const char *pathname, int flags);
 
@@ -83,6 +82,54 @@ int open_t(const char *pathname, int flags);
  *          file offset specified by offset.
  * @retval >0 The number of bytes read.
  * @retval 0 If offset is at or past the end of the file.
- * @retval -1 Error occured.
+ * @retval -1 Error occurred.
  */
 int read_t(int inode_number, int offset, void *buf, int count);
+
+/**
+ * @brief Write bytes to file.
+ * @details Write up to count bytes from the buffer pointed buf to 
+ *          the file referred to by the inode number inode_number 
+ *          starting at the file offset at offset.
+ * @retval >0 Number of bytes written.
+ * @retval 0 Noting was written.
+ * @retval -1 Error occurred.
+ * @return Return the number of bytes written. The number of bytes 
+ *         written may be less than counter if there is insufficient
+ *         space on the underlying physical medium or the maximum
+ *         size of a fil has been achieved.
+ */
+int write_t(int inode_number, int offset, void *buf, int count);
+
+
+/******************************************************************
+ * Internal API
+ *****************************************************************/
+
+/**
+ * @brief Search the inode of a file or directory.
+ * retval -1 File not found.
+ */
+int find_dir(const char *path);
+
+/**
+ * @brief Add an entry into directory.
+ */
+void add_entry(int dir_inode, const char *entry_name, int entry_inode);
+
+/**
+ * @brief Load the harddisk file.
+ */
+int load_SFS(const char *hd_file) {
+
+/******************************************************************
+ * Global variables
+ *****************************************************************/
+// File system
+char global_hd_file[4096];
+int global_fd;
+char *global_map;
+struct superblock *global_sb;
+
+// tshell
+int current_dir_inode;

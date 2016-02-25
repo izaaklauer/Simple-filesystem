@@ -2,7 +2,6 @@
  * @file tshell.h
  * @brief A simple shell program (tshell)
  * @author Star Poon <star.poon@connect.polyu.hk>
- * @version 1.0
  * @copyright 2016
  *
  * @section LICENSE
@@ -24,10 +23,3 @@
 
 #include "SFS.h"
 
-/**
- * @brief Build an SFX filesystem on a file with the name file_name
- * @param[in] filename
- * @retval 0 Success
- * @retval -1 Error occured
- */
-int mkfs_t(const char *file_name);

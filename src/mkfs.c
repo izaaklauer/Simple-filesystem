@@ -2,7 +2,6 @@
  * @file mkfs_t.c
  * @brief Create and format a simple filesystem (SFS)
  * @author Star Poon <star.poon@connect.polyu.hk>
- * @version 1.0
  * @copyright 2016
  *
  * @section LICENSE
@@ -52,6 +51,10 @@ int main(int argc, char *argv[]) {
 
     // Mmap the file
     int fd = open(argv[1], O_RDWR);
+    if (fd == -1) {
+        fprintf(stderr, "%s: failed to open file '%s'\n", argv[0], argv[1]);
+        return EXIT_FAILURE;
+    }
     char *map = mmap(0, MAX_FILESYSTEM_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     if (map == MAP_FAILED) {
         close(fd);
@@ -71,6 +74,10 @@ int main(int argc, char *argv[]) {
         .blk_size = BLOCK_SIZE,
     };
     memcpy(map+SB_OFFSET, &sb, sizeof(sb));
+
+    // Init root directory
+    int root_inode = get_next_inode();
+    add_entry(root_inode, ".", 0);
 
     // Unmap the file
     if (msync(map, MAX_FILESYSTEM_SIZE, MS_SYNC) == -1) {
