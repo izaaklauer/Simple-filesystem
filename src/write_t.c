@@ -22,25 +22,65 @@
  */
 
 #include "SFS.h"
+char* 
+// blocks * BLOCK_SIZE
+int calc_data_block_id(int offset) {
+    return BLOCK_SIZE / offset;
+}
 
-int open_t(const char *pathname, int flags) {
-    if (flags==2) {      // find existing file
-        return find_inode(pathname);
-    } else {            // create new file/dir(override)
-        // get the parent_path
-        char parent_path[65535];
-        path_get_path(parent_path, pathname, sizeof(parent_path));
-        // get file/folder name
-        char filename[65535];
-        path_get_filename(filename, pathname, sizeof(parent_path));
-        // add entry
-        int parent_inode = find_inode(parent_path);
-        if (flags==0) {
-            // 0 = create regular file (override)
-            create_file(parent_inode, filename);
-        } else if (flags==1) {
-            // 1 = create directory (override)
-            create_directory(parent_inode, filename);
+int calc_data_block_offset(int offset) {
+    return offset - (BLOCK_SIZE / offset)*BLOCK_SIZE;
+}
+
+int write_to_block(struct inode *inode, int block_id, int block_offset, void *buf, int count) {
+    int max_write_count = BLOCK_SIZE - block_offset;
+    int write_count = count<max_write_count? count: max_write_count;
+    // ensure the current block and the previous blocks are allocated
+    if (inode->i_blocks < block_id) {
+        // need to allocate blocks
+        if (block_id>=0 && inode->direct_blk[0]==0)
+            inode->direct_blk[0] = get_next_block();
+        if (block_id>=1 && inode->direct_blk[1]==0)
+            inode->direct_blk[1] = get_next_block();
+        if (block_id>=2) {
+            if (inode->indirect_blk==0)  // indirect block not allocated
+                inode->indirect_blk = get_next_block();
+            int i=0;
+            while(i<=block_id-2) {
+                int *ptr = *(inode->indirect_blk)+i*sizeof(int);
+                if(!ptr)
+                    ptr = get_next_block();
+                i++;
+            }
         }
     }
+    
+    //Get block ptr
+    int *ptr
+    if(block_id==0)
+        ptr = inode->direct_blk[0];
+    else if(block_id==1)
+        ptr = inode->direct_blk[1];
+    else
+        ptr = *(inode->indirect_blk)+(block_id-2)*sizeof(int);
+    memcpy(ptr, block_offset, write_count);
+    return write_count;
+}
+
+int write_t(int inode_number, int offset, void *buf, int count) {
+    struct *inode_ptr = GET_INODE_PTR(inode_number);
+    void *local_buf = buf;
+    int local_count;
+
+    int block_id = calc_data_block_id(offset);
+    int block_offset = calc_data_block_offset(offset);
+
+    while(true) {
+        int ret = write_to_block(inode_ptr, block_id, block_offset, *local_buf, count-local_count)>0;
+        if (ret<=0)
+            break;
+        local_buf += ret;
+        local_count += ret;
+    }
+    return local_count;
 }

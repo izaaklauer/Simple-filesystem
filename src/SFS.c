@@ -20,7 +20,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include "SFS.h"
+
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
+struct inode* GET_INODE_PTR(int inode_number) {
+    return (struct inode*)global_sb->inode_offset+inode_number*(sizeof(struct inode));
+}
 
 int load_SFS(const char *hd_file) {
     // open and mmap the harddisk file
@@ -53,6 +63,19 @@ int get_next_inode() {
 int create_directory(int parent_inode, const char *dir_name) {
     // allocate inode
     int child_inode = get_next_inode();
+
+    // initialize the inode structure
+    struct inode *inode_ptr = GET_INODE_PTR(inode_number);
+    inode_ptr->i_number = child_inode;
+    time(&inode_ptr->i_mtime);
+    inode_ptr->i_type = 0;
+    inode_ptr->i_size = 0;
+    inode_ptr->i_blocks = -1;
+    inode_ptr->direct_blk[0] = 0;
+    inode_ptr->direct_blk[1] = 0;
+    inode_ptr->indirect_blk = 0;
+    inode_ptr->file_num = 0;
+
     // add item into parent_inode
     add_entry(parent_inode, dir_name, child_inode);
     // add . and .. into the child_inode
@@ -63,6 +86,19 @@ int create_directory(int parent_inode, const char *dir_name) {
 
 int create_file(int parent_inode, const char *filename) {
     int child_inode = get_next_inode();
+
+    // initialize the inode structure
+    struct *inode_ptr = GET_INODE_PTR(inode_number);
+    inode_ptr->i_number = inode_number;
+    time(&inode_ptr->i_mtime);
+    inode_ptr->i_type = 1;
+    inode_ptr->i_size = 0;
+    inode_ptr->i_blocks = -1;
+    inode_ptr->direct_blk[0] = 0;
+    inode_ptr->direct_blk[1] = 0;
+    inode_ptr->indirect_blk = 0;
+    inode_ptr->file_num = 0;
+
     add_entry(parent_inode, filename, child_inode);
     return child_inode;
 }
@@ -150,4 +186,3 @@ char* path_get_filename(char *dst, const char *str, int len) {
     strncpy(dst, ptr+1, len);
     return *ptr;
 }
-

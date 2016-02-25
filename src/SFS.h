@@ -21,6 +21,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <time.h>
+
 //Unit is Byte
 #define SB_OFFSET                       512
 #define INODE_OFFSET                   4096
@@ -120,7 +122,9 @@ void add_entry(int dir_inode, const char *entry_name, int entry_inode);
 /**
  * @brief Load the harddisk file.
  */
-int load_SFS(const char *hd_file) {
+int load_SFS(const char *hd_file);
+
+int get_next_inode();
 
 /******************************************************************
  * Global variables

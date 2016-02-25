@@ -1,18 +1,19 @@
+CC := clang
 OBJDIR := obj
 BINDIR := bin
 SRCDIR := src
-#OBJS := $(addprefix $(OBJDIR)/,mkfs_t.o)
+OBJS := $(addprefix $(OBJDIR)/,mkfs_t.o SFS.o)
 CFLAGS :=
 #CFLAGS := -Wall -Wextra -pedantic
 
 all: $(BINDIR)/mkfs_t
 
-$(BINDIR)/mkfs_t: $(OBJDIR)/mkfs_t.o
-		@gcc -o $(BINDIR)/mkfs_t $(OBJDIR)/mkfs_t.o
+$(BINDIR)/mkfs_t: $(OBJDIR)/mkfs.o $(OBJDIR)/SFS.o
+		@$(CC) -o $(BINDIR)/mkfs $(OBJDIR)/mkfs.o $(OBJDIR)/SFS.o
 			@echo Building mkfs_t
 
 $(OBJDIR)/%.o:  $(SRCDIR)/%.c | $(OBJDIR) $(BINDIR)
-		@gcc -c $(CFLAGS) $(SRCDIR)/$*.c -o $(OBJDIR)/$*.o
+		@$(CC) -c $(CFLAGS) $(SRCDIR)/$*.c -o $(OBJDIR)/$*.o
 			@echo Building $*.o
 
 $(OBJDIR):
