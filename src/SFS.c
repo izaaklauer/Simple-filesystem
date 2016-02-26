@@ -22,14 +22,18 @@
  */
 #include "SFS.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <unistd.h>
 
 
 struct inode* GET_INODE_PTR(int inode_number) {
-    return (struct inode*)global_sb->inode_offset+inode_number*(sizeof(struct inode));
+    return (struct inode*)global_map+global_sb->inode_offset+inode_number*(sizeof(struct inode));
 }
 
 int load_SFS(const char *hd_file) {
@@ -55,9 +59,9 @@ int load_SFS(const char *hd_file) {
 }
 
 int get_next_inode() {
-    char *p = global_superblock.next_available_inode;
-    global_superblock.next_available_inode++;
-    return *p;
+    int i = global_sb->next_available_inode;
+    global_sb->next_available_inode++;
+    return i;
 }
 
 int create_directory(int parent_inode, const char *dir_name) {
@@ -65,7 +69,7 @@ int create_directory(int parent_inode, const char *dir_name) {
     int child_inode = get_next_inode();
 
     // initialize the inode structure
-    struct inode *inode_ptr = GET_INODE_PTR(inode_number);
+    struct inode *inode_ptr = GET_INODE_PTR(child_inode);
     inode_ptr->i_number = child_inode;
     time(&inode_ptr->i_mtime);
     inode_ptr->i_type = 0;
@@ -88,8 +92,8 @@ int create_file(int parent_inode, const char *filename) {
     int child_inode = get_next_inode();
 
     // initialize the inode structure
-    struct *inode_ptr = GET_INODE_PTR(inode_number);
-    inode_ptr->i_number = inode_number;
+    struct inode *inode_ptr = GET_INODE_PTR(child_inode);
+    inode_ptr->i_number = child_inode;
     time(&inode_ptr->i_mtime);
     inode_ptr->i_type = 1;
     inode_ptr->i_size = 0;
@@ -109,9 +113,9 @@ int create_file(int parent_inode, const char *filename) {
  * @retval -2 Not a directory
  */
 int _find_inode(int inode, char *dir_name) {
-    struct *inode_ptr = GET_INODE_PTR(inode);
+    struct inode *inode_ptr = GET_INODE_PTR(inode);
     // check if the inode is a directory
-    if(inode_ptr.i_type != 0) {
+    if(inode_ptr->i_type != 0) {
         return -2;      // error: this is not a directory
     }
     // loop each dir_mapping record and compare the name
@@ -126,7 +130,7 @@ int _find_inode(int inode, char *dir_name) {
             return map.inode_number;    // found
         }
         i++;
-    } while (true);
+    } while (1);
 }
 
 int find_inode(const char *path) {
@@ -138,12 +142,12 @@ int find_inode(const char *path) {
     while (pch != NULL) {
         printf("DEBUG: PCH = %s\n", pch);
         // find the child item in the current directory *inode
-        inode = _find_inode(inode, path_part);
+        inode = _find_inode(inode, pch);
         if (inode==-1) {
-            perror("Error: cannot find '%s' in '%s'.\n", pch, inode_name);
+            fprintf(stderr, "Error: cannot find '%s' in '%s'.\n", pch, inode_name);
             return -1;
         } else if (inode==-2) {
-            perror("Error: '%s' is not a directory.\n", pch, inode_name);
+            fprintf(stderr, "Error: '%s' is not a directory.\n", pch);
             return -1;
         }
         pch = strtok(NULL, "/\\");
@@ -169,11 +173,11 @@ char* path_get_path(char *dst, const char *str, int len) {
     trim_path(dst);
     char *ptr = strrchr(dst, '/');
     if (!ptr) {
-        perror("Error: Invalid path '%s'\n", dst);
+        fprintf(stderr, "Error: Invalid path '%s'\n", dst);
     }
     if (ptr!=dst)
         *ptr = '\0';
-    return *dst;
+    return dst;
 }
 
 char* path_get_filename(char *dst, const char *str, int len) {
@@ -181,8 +185,8 @@ char* path_get_filename(char *dst, const char *str, int len) {
     trim_path(dst);
     char *ptr = strrchr(dst, '/');
     if (!ptr) {
-        perror("Error: Invalid path '%s'\n", dst);
+        fprintf(stderr, "Error: Invalid path '%s'\n", dst);
     }
     strncpy(dst, ptr+1, len);
-    return *ptr;
+    return ptr;
 }

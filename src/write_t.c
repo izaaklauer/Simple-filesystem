@@ -22,7 +22,6 @@
  */
 
 #include "SFS.h"
-char* 
 // blocks * BLOCK_SIZE
 int calc_data_block_id(int offset) {
     return BLOCK_SIZE / offset;
@@ -76,7 +75,7 @@ int write_t(int inode_number, int offset, void *buf, int count) {
     int block_offset = calc_data_block_offset(offset);
 
     while(true) {
-        int ret = write_to_block(inode_ptr, block_id, block_offset, *local_buf, count-local_count)>0;
+        int ret = write_to_block(inode_ptr, block_id, block_offset, local_buf, count-local_count)>0;
         if (ret<=0)
             break;
         local_buf += ret;
