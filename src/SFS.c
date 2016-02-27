@@ -36,6 +36,36 @@ struct inode* GET_INODE_PTR(int inode_number) {
     return (struct inode*)global_map+global_sb->inode_offset+inode_number*(sizeof(struct inode));
 }
 
+void* GET_BLK_PTR(int blk_number) {
+    return (struct inode*)global_map+global_sb->inode_offset+blk_number*(sizeof(struct inode));
+}
+
+// calculate the block_num after the offset
+int calc_data_block_id(int offset) {
+    return BLOCK_SIZE / offset;
+}
+
+// calcuate the amount of offset in the first blk for writing
+int calc_data_block_offset(int offset) {
+    return offset - (BLOCK_SIZE / offset)*BLOCK_SIZE;
+}
+
+// get a pointer which store the block_number of the block in inode
+int* get_blk_in_inode(struct inode *inode, int blk_number) {
+    if (blk_number == 0)
+        return &inode->direct_blk[0];
+    else if (blk_number == 1)
+        return &inode->direct_blk[1];
+    else {
+        if (inode->indirect_blk < 0) {
+            perror("ERROR: indirect_blk not allocated in get_blk_in_inode()\n");
+            return NULL;
+        }
+        int *blk = (int*)GET_BLK_PTR(inode->indirect_blk);
+        return blk+(blk_number-2);
+    }
+}
+
 int load_SFS(const char *hd_file) {
     // open and mmap the harddisk file
     int fd = open(hd_file, O_RDWR);
@@ -61,6 +91,12 @@ int load_SFS(const char *hd_file) {
 int get_next_inode() {
     int i = global_sb->next_available_inode;
     global_sb->next_available_inode++;
+    return i;
+}
+
+int get_next_block() {
+    int i = global_sb->next_available_blk;
+    global_sb->next_available_blk++;
     return i;
 }
 
@@ -138,7 +174,9 @@ int find_inode(const char *path) {
     int inode = 0;
     char inode_name[10] = "/";
     char *pch;
-    pch = strtok(path, "/");
+    char tmp_path[65535]; 
+    strncpy(tmp_path, path, 65535);
+    pch = strtok(tmp_path, "/");
     while (pch != NULL) {
         printf("DEBUG: PCH = %s\n", pch);
         // find the child item in the current directory *inode

@@ -22,20 +22,37 @@
  */
 
 #include "SFS.h"
+#include <string.h>
+#include <stdio.h>
+
+int read_from_block(struct inode *inode, int block_id, int block_offset, void *buf, int count) {
+    int max_read_count = BLOCK_SIZE - block_offset;
+    int read_count = count>max_read_count? max_read_count : count;
+
+    //Get block ptr
+    int *p = get_blk_in_inode(inode, block_id);
+    void *ptr = GET_BLK_PTR(*p);
+    memcpy(buf, ptr+block_offset, read_count);
+    return read_count;
+}
+
 int read_t( int inode_number, int offset, void *buf, int count) {
-    struct *inode_ptr = GET_INODE_PTR(inode_number);
+    struct inode *inode_ptr = GET_INODE_PTR(inode_number);
     void *local_buf = buf;
-    int local_count;
+    int read_count = 0;
 
     int block_id = calc_data_block_id(offset);
     int block_offset = calc_data_block_offset(offset);
+    int ret = read_from_block(inode_ptr, block_id, block_offset, local_buf, count);
 
-    while(true) {
-        int ret = write_to_block(inode_ptr, block_id, block_offset, local_buf, count-local_count)>0;
-        if (ret<=0)
-            break;
+    while(1) {
         local_buf += ret;
-        local_count += ret;
+        read_count += ret;
+        block_id++;
+        if(read_count>=count)
+            break;
+        //no more offset
+        ret = read_from_block(inode_ptr, block_id, 0, local_buf, count-read_count);
     }
-    return local_count;
+    return read_count;
 }

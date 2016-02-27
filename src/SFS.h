@@ -119,12 +119,15 @@ int find_dir(const char *path);
  */
 void add_entry(int dir_inode, const char *entry_name, int entry_inode);
 
-/**
- * @brief Load the harddisk file.
- */
-int load_SFS(const char *hd_file);
-
 int get_next_inode();
+int get_next_block();
+
+struct inode* GET_INODE_PTR(int inode_number);
+void* GET_BLK_PTR(int blk_number);
+
+int calc_data_block_id(int offset);
+int calc_data_block_offset(int offset);
+int* get_blk_in_inode(struct inode *inode, int blk_number);
 
 /******************************************************************
  * Global variables

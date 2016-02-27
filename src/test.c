@@ -1,6 +1,6 @@
 /**
- * @file write_t.c
- * @brief Write into a file in SFS.
+ * @file test.c
+ * @brief Test suite
  * @author Star Poon <star.poon@connect.polyu.hk>
  * @copyright 2016
  *
@@ -24,14 +24,35 @@
 #include "SFS.h"
 #include <string.h>
 #include <stdio.h>
+// blocks * BLOCK_SIZE
+int calc_data_block_id(int offset) {
+    return BLOCK_SIZE / offset;
+}
 
-// initialize all the block_number to -1 for indirect block
+int calc_data_block_offset(int offset) {
+    return offset - (BLOCK_SIZE / offset)*BLOCK_SIZE;
+}
+
+int* get_blk_in_inode(struct inode *inode, int blk_number) {
+    if (blk_number == 0)
+        return &inode->direct_blk[0];
+    else if (blk_number == 1)
+        return &inode->direct_blk[1];
+    else {
+        if (inode->indirect_blk < 0) {
+            perror("ERROR: indirect_blk not allocated in get_blk_in_inode()\n");
+            return NULL;
+        }
+        int *blk = (int*)GET_BLK_PTR(inode->indirect_blk);
+        return blk+(blk_number-2);
+    }
+}
+
 void init_indirect_blk(int *blk) {
    for(int i=0; i < BLOCK_SIZE*8/sizeof(int); i++)
        blk[i] = -1;
 }
 
-// block_offset must <= BLOCK_SIZE
 int write_to_block(struct inode *inode, int block_id, int block_offset, void *buf, int count) {
     int max_write_count = BLOCK_SIZE - block_offset;
     int write_count = count<max_write_count? count: max_write_count;
@@ -65,7 +86,7 @@ int write_to_block(struct inode *inode, int block_id, int block_offset, void *bu
 int write_t(int inode_number, int offset, void *buf, int count) {
     struct inode *inode_ptr = GET_INODE_PTR(inode_number);
     void *local_buf = buf;
-    int write_count = 0;
+    int written_count = 0;
 
     int block_id = calc_data_block_id(offset);
     int block_offset = calc_data_block_offset(offset);
@@ -73,12 +94,12 @@ int write_t(int inode_number, int offset, void *buf, int count) {
 
     while(1) {
         local_buf += ret;
-        write_count += ret;
+        written_count += ret;
         block_id++;
-        if(write_count>=count)
+        if(written_count>=count)
             break;
         //no more offset
-        ret = write_to_block(inode_ptr, block_id, 0, local_buf, count-write_count);
+        ret = write_to_block(inode_ptr, block_id, 0, local_buf, count-written_count);
     }
-    return write_count;
+    return written_count;
 }
